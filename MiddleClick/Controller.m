@@ -9,11 +9,12 @@
 #pragma mark Multitouch API
 
 typedef struct {
-  float x, y;
-} mtPoint;
-typedef struct {
   mtPoint pos, vel;
 } mtReadout;
+
+LoggedClick recent_clicks[ 4 ];
+
+LoggedClick this_click;
 
 typedef struct {
   int frame;
@@ -264,6 +265,10 @@ CGEventRef mouseCallback(CGEventTapProxy proxy, CGEventType type,
   return event;
 }
 
+static bool TooNearEdge(float pos) {
+	return pos <= 0.02f || pos >= 0.98f;
+}
+
 // mulittouch callback, see what is touched. If 3 are on the mouse set
 // threedowns, else unset threedowns.
 int touchCallback(int device, Finger* data, int nFingers, double timestamp,
@@ -289,7 +294,8 @@ int touchCallback(int device, Finger* data, int nFingers, double timestamp,
       touchStartTime = NULL;
       if (middleclickX + middleclickY) {
         float delta = ABS(middleclickX - middleclickX2) + ABS(middleclickY - middleclickY2);
-        if (delta < 0.4f) {
+		bool ok = !TooNearEdge(this_click.f1.x) && !TooNearEdge(this_click.f1.y) && !TooNearEdge(this_click.f2.x) && !TooNearEdge(this_click.f2.y);
+        if (delta < 0.05f && ok) {
           // Emulate a middle click
           
           // get the current pointer location
@@ -302,8 +308,19 @@ int touchCallback(int device, Finger* data, int nFingers, double timestamp,
           CGEventPost(kCGHIDEventTap,
                       CGEventCreateMouseEvent(NULL, kCGEventOtherMouseUp,
                                               ourLoc, kCGMouseButtonCenter));
-        }
-      }
+
+		  memmove( recent_clicks + 1, recent_clicks, sizeof( recent_clicks[ 0 ] ) * 3 );
+		  recent_clicks[ 0 ] = this_click;
+
+		  for( size_t i = 0; i < 4; i++ ) {
+			  [recent_click_items[ i ] setTitle:[NSString stringWithFormat:@"(%.2f, %.2f) (%.2f, %.2f)",
+			  recent_clicks[ i ].f1.x,
+			  recent_clicks[ i ].f1.y,
+			  recent_clicks[ i ].f2.x,
+			  recent_clicks[ i ].f2.y]];
+		  }
+		}
+	  }
     } else if (nFingers > 0 && touchStartTime == NULL) {
       NSDate* now = [[NSDate alloc] init];
       touchStartTime = [now retain];
@@ -315,7 +332,7 @@ int touchCallback(int device, Finger* data, int nFingers, double timestamp,
     } else {
       if (maybeMiddleClick == YES) {
         NSTimeInterval elapsedTime = -[touchStartTime timeIntervalSinceNow];
-        if (elapsedTime > 0.5f)
+        if (elapsedTime > 0.2f)
           maybeMiddleClick = NO;
       }
     }
@@ -334,6 +351,10 @@ int touchCallback(int device, Finger* data, int nFingers, double timestamp,
           middleclickX += pos.x;
           middleclickY += pos.y;
         }
+
+		this_click.f1 = ((Finger *)&data[0])->normalized.pos;
+		this_click.f2 = ((Finger *)&data[1])->normalized.pos;
+
         middleclickX2 = middleclickX;
         middleclickY2 = middleclickY;
         maybeMiddleClick = NO;

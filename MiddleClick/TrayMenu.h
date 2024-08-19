@@ -1,6 +1,8 @@
 #import "Controller.h"
 #import <Foundation/Foundation.h>
 
+extern NSMenuItem * recent_click_items[ 4 ];
+
 @interface TrayMenu : NSObject <NSFileManagerDelegate> {
 @private
   NSStatusItem* _statusItem;

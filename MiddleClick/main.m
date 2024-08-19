@@ -4,7 +4,7 @@
 int main(int argc, char* argv[])
 {
   NSDictionary *appDefaults = [NSDictionary
-                               dictionaryWithObject:[NSNumber numberWithInt:3] forKey:@"fingers"];
+                               dictionaryWithObject:[NSNumber numberWithInt:2] forKey:@"fingers"];
   
   [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
   
